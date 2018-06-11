@@ -103,7 +103,7 @@ void leggi_file(){
 /**
  *  Crea i due semafori che saranno usati da tutti i processi
  */
-int crea_semaforo(){
+/*int crea_semaforo(){
   int sem_id = createsem(KEY_SEM);
   
   if(sem_id == -1){
@@ -114,7 +114,7 @@ int crea_semaforo(){
   setsemval(sem_id, 0, 1);
   
   return sem_id;
-}
+}*/
 
 
 /**
@@ -182,24 +182,31 @@ int main() {
   void *puntatore_shm;
   char persona_pointer[sizeof(individuo)];
   int sem_id;
+  int msgq_id;
   clock_t inizio, bdclock;
   
   srand(time(NULL));
 
   leggi_file();
-  printf("file letto\n");
+
   persone = (individuo*) malloc(sizeof(individuo) * init_people);
   
-  //puntatore_shm = createshm(shm_key, (sizeof(unsigned long) * 3) * init_people, &shm_id);
   puntatore_shm = createshm(shm_key, sizeof(_individuo) * init_people, &shm_id);
-  printf("shm creata\n");
-  printf("%d\n", (void*)puntatore_shm);
+  
   if(puntatore_shm == NULL){
     printf("Errore nella creazione della memoria condivisa\n");
     exit(EXIT_FAILURE);
   }
-  sem_id = crea_semaforo();
-  printf("semaforo creato\n");
+  
+  sem_id = semget(KEY_SEM, 1, IPC_CREAT | IPC_EXCL);
+  initSemInUse(sem_id, 0);
+  
+  msgq_id = msgget(KEY_MSGQ, IPC_CREAT | IPC_EXCL);
+  if(msgq_id == -1){
+    printf("Errore nella creazione della coda di messaggi\n");
+    exit(EXIT_FAILURE);
+  }
+  
   for(i = 0; i < init_people; i++){
     persone[i] = init_individuo(NULL, NULL, 2, genes);
     aumenta_popolazione(persone[i]);
@@ -216,12 +223,13 @@ int main() {
 				
 			default: // caso del padre
 			  persone[i]->pid = child_pid;
-			  while ((wpid = wait(&status)) > 0);
+			  //while ((wpid = wait(&status)) > 0);
 				break;
 		}
   }
-  printf("fork e execve\n");
-  unlocksem(sem_id, 0);
+
+  releaseSem(sem_id, 0);
+  //unlocksem(sem_id, 0);
   /*inizio = clock();
   bdclock = inizio;*/
   
@@ -229,12 +237,12 @@ int main() {
   while(((clock() - inizio) / CLOCKS_PER_SEC) < sim_time){
     printf("Tempo di esecuzione: %lu\n", (clock() - inizio) / CLOCKS_PER_SEC);
     if(((clock() - bdclock) / CLOCKS_PER_SEC) > birth_death){   
-      locksem(sem_id, 1);
+      reservesem(sem_id, 1);
       uccidi_individuo(persone);
       persone[init_people - 1] = init_individuo(NULL, NULL, 2, genes);
       crea_persona(persone[init_people - 1]);
       aumenta_popolazione(persone[init_people-1]);
-      unlocksem(sem_id, 1);
+      releasesem(sem_id, 1);
     }
     bdclock = clock();
   }

@@ -14,10 +14,9 @@
 
 #define KEY_MEMORIA 5555
 #define KEY_SEM 8888
+#define KEY_MSGQ 9999
 #define SHM_SPACE sizeof(unsigned long) * 3
 #define strlens(s) (s==NULL?0:strlen(s))
-#define KEY_MSGQ 9999
-
 
 key_t shm_key = 5555;
 
@@ -85,6 +84,33 @@ char* unslong_to_string(unsigned long ul){
   int c = snprintf(buf, n+1, "%lu", ul);
   
   return buf;
+}
+
+char **strsplit(const char* str, const char* delim, size_t* numtokens) {
+    char *s = strdup(str);
+    size_t tokens_alloc = 1;
+    size_t tokens_used = 0;
+    char **tokens = calloc(tokens_alloc, sizeof(char*));
+    char *token, *strtok_ctx;
+    for (token = strtok_r(s, delim, &strtok_ctx);
+            token != NULL;
+            token = strtok_r(NULL, delim, &strtok_ctx)) {
+        if (tokens_used == tokens_alloc) {
+            tokens_alloc *= 2;
+            tokens = realloc(tokens, tokens_alloc * sizeof(char*));
+        }
+        tokens[tokens_used++] = strdup(token);
+    }
+    // cleanup
+    if (tokens_used == 0) {
+        free(tokens);
+        tokens = NULL;
+    } else {
+        tokens = realloc(tokens, tokens_used * sizeof(char*));
+    }
+    *numtokens = tokens_used;
+    free(s);
+    return tokens;
 }
 
 

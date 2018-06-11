@@ -67,7 +67,7 @@ int comparator(unsigned long gen1, unsigned long gen2){
   if(MCD(me->genoma, gen1) > MCD(me->genoma, gen2))
     return 1;
   else
-    return -1;  
+    return -1;
 }
 
 void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_oggetto){
@@ -77,11 +77,13 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
 	sbuf.mtext[0] = stato; // stato di accetatto (1), rifiutato(0)
 	sbuf.mtext[1] = pid_oggetto;
 
-	  //Scrivi su coda di messaggi OK(verso processo B)
-    if(msgsnd(msgq_id, &sbuf, sizeof(sbuf),0)){
-      printf("Errore nel rispondere al processo B\n");
-      exit(EXIT_FAILURE);
-    }
+	//Scrivi su coda di messaggi OK(verso processo B)
+  if(msgsnd(msgq_id, &sbuf, sizeof(sbuf),0) != 0){
+    printf("Errore nello scriver al processo A\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  printf("Ho scritto al processo A con pid %lu\n", &pid_destinatario);
 }
 
 void ordina_array(individuo *arrA, int numA){
@@ -91,8 +93,8 @@ void ordina_array(individuo *arrA, int numA){
   
   for(i = 0; i < numA; i++){
     posmax = i;
-    for (j = (i + 1); j < numA; j++){
-      if(comparator(arrA[j]->genoma , arrA[posmax]->genoma) > 0)
+    for (j = i + 1; j < numA; j++){
+      if(comparator(arrA[j]->genoma, arrA[posmax]->genoma) > 0)
         posmax = j;
     }
     if(posmax != i){
@@ -144,9 +146,13 @@ void scegli_A(individuo shm){
   }
 
   ordina_array(arrA, numA);
-  
   contatta_processo_A(arrA, numA);
   
+  /*for(i = 0; i <init_people; i++){
+    if(arrA[i]->genoma != 0){
+      pulisci_persona(arrA[i]);
+    }
+  } */
   free(arrA);
 }
 
@@ -179,7 +185,7 @@ int main(int argc, char* argv[]) {
 
   leggi_file();
   sem_id = semget(KEY_SEM, 0, 0);
-  getsemval(sem_id);
+  getsemval(sem_id, 0);
   
   printf("Sono il processo_B\n");
   

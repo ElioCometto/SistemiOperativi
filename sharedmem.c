@@ -33,3 +33,4 @@ removeshm (int shm_id)
 {
     return shmctl (shm_id, IPC_RMID, NULL);
 }
+
