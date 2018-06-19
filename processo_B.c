@@ -12,6 +12,7 @@ int msgq_id;
 struct msgbuf *msgp;
 void *puntatore_shm;
 individuo me;
+int sem_id;
 
 void libera_risorse(){
 	if(msgctl(msgq_id, IPC_RMID, NULL) == -1){
@@ -135,18 +136,36 @@ void scegli_A(individuo shm){
   char *shptr;
   individuo *arrA;
   
+  printf("Scelgo individuo A\n");
+  
   arrA = (individuo *) malloc(sizeof(individuo) * init_people);
 
   numA = 0;
+  
+  reserveSem(sem_id, 0);
+  printf("Sezione critica\n");
+  
   for(i = 0; i < init_people; i++){
     if(shm[i].pid != 0){
       arrA[numA]->genoma = shm[i].genoma;
       arrA[numA]->pid = shm[i].pid;
-      numA++;
+      debug_individuo(arrA[numA]);
+      numA++; 
     }
   }
+  
+  print_shm(shm, init_people);
+  
+  releaseSem(sem_id, 0);
+  
+  
 
   ordina_array(arrA, numA);
+  
+  for(i = 0; i < numA; i++){
+    debug_individuo(arrA[i]);
+  }
+  
   contatta_processo_A(arrA, numA);
   
   /*for(i = 0; i <init_people; i++){
@@ -182,17 +201,23 @@ void (*handler(int sig)){
 
 int main(int argc, char* argv[]) {
   me = initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
-  int shm_id, sem_id;
+  int shm_id;
   
   printf("Sono il processo_B\n");
   leggi_file();
   sem_id = semget(KEY_SEM, 0, 0666);
-
+  if(sem_id == -1){
+     printf("Errore nella letture della coda di messaggi processo B: %s\n", strerror(errno));
+  }
+  
   while(getVal(sem_id) != 1){
     sleep(0.5);
   }
  
   msgq_id = msgget(KEY_MSGQ,0);
+  if(msgq_id == -1){
+     printf("Errore nella letture della coda di messaggi processo B: %s\n", strerror(errno));
+  }
   
   shm_id = shmget(shm_key, 0, 0);
   puntatore_shm = (individuo) shmat(shm_id, NULL, 0);
@@ -202,8 +227,9 @@ int main(int argc, char* argv[]) {
   }
   
   while(1){
+    sleep(1.0);
     scegli_A(puntatore_shm);
-    sleep(0.5);
+    
   }
 }
 

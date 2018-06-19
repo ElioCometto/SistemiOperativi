@@ -38,7 +38,7 @@ individuo initialize_individuo(char* name, unsigned long gen){
 
 void scrivi_info(individuo meshm){
   int i = 0, flag = 0;
-  //getsemval(sem_id);
+
   reserveSem(sem_id,0);
 
   while(i<5 && flag == 0){
@@ -138,7 +138,9 @@ int main(int argc, char* argv[]) {
     sleep(0.5);
   }
   
+  reserveSem(sem_id, 0);
   debug_individuo(me);
+  releaseSem(sem_id, 0);
   
   shm_id = shmget(shm_key, 0, 0);
   shm = (individuo) shmat(shm_id, NULL, 0);
@@ -148,6 +150,8 @@ int main(int argc, char* argv[]) {
   }
   
   scrivi_info(shm);
+  
+  //print_shm(shm, 5);
   
   //Crea la coda dei messaggi 
   msgq_id = msgget(KEY_MSGQ,0);
