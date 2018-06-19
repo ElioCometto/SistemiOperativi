@@ -207,10 +207,9 @@ int main() {
   if(initSemInUse(sem_id, 0) == -1){
     printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
   }
-  if(getsemval(sem_id, 0) == -1){
+  /*if(getsemval(sem_id, 0) == -1){
     printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
-  }
-  //reserveSem(sem_id, 0);
+  }*/
   
   
   msgq_id = msgget(KEY_MSGQ, IPC_CREAT | IPC_EXCL);
@@ -240,12 +239,14 @@ int main() {
 		}
   }
 
-  printf("Valore getsemval: %d\n", getsemval(sem_id, 0));
-  
+  printf("Valore del semaforo G %d\n", getVal(sem_id));
+ 
+  sleep(1.0);
   if(releaseSem(sem_id, 0) != 0){
     printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
   }
-  //unlocksem(sem_id, 0);
+  printf("Valore del semaforo G %d\n", getVal(sem_id));
+  
   /*inizio = clock();
   bdclock = inizio;*/
   

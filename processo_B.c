@@ -187,14 +187,11 @@ int main(int argc, char* argv[]) {
   printf("Sono il processo_B\n");
   leggi_file();
   sem_id = semget(KEY_SEM, 0, 0666);
-  printf("Valore getsemval B: %d\n", getsemval(sem_id, 0));
-  //while( < 0){}
-  //getsemval(sem_id, 0);
-  if(getsemval(sem_id, 0) == -1){
-    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+
+  while(getVal(sem_id) != 1){
+    sleep(0.5);
   }
-  
-  
+ 
   msgq_id = msgget(KEY_MSGQ,0);
   
   shm_id = shmget(shm_key, 0, 0);

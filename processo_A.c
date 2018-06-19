@@ -133,11 +133,9 @@ int main(int argc, char* argv[]) {
   
   printf("Sono il processo_A\n");
   sem_id = semget(KEY_SEM, 0, 0666);
-  //while( < 0){}
-  printf("Valore getsemval A: %d\n", getsemval(sem_id, 0));
   
-  if(getsemval(sem_id, 0) == -1){
-    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+  while(getVal(sem_id) != 1){
+    sleep(0.5);
   }
   
   debug_individuo(me);

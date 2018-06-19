@@ -44,3 +44,8 @@ int getsemval(int semId, int semNum){
   sops.sem_flg = 0;
   return semop(semId, &sops, 1);
 }
+
+int getVal(int semId){
+  return semctl(semId, 0, GETVAL, 1);  
+}
+

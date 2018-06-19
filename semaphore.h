@@ -31,4 +31,6 @@ int releaseSem(int semId, int semNum);
 
 int getsemval(int semId, int semNum);
 
+int getVal(int semId);
+
 #endif /* SEMAPHORE_H */
