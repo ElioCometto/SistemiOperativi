@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 #include "library.h"
 #include "sharedmem.h"
 #include "semaphore.h"
@@ -129,11 +130,16 @@ int main(int argc, char* argv[]) {
   int shm_id, i;
   target = me->genoma;
   int va_bene;
-
-  sem_id = semget(KEY_SEM, 0, 0);
-  getsemval(sem_id, 0);
   
   printf("Sono il processo_A\n");
+  sem_id = semget(KEY_SEM, 0, 0666);
+  //while( < 0){}
+  printf("Valore getsemval A: %d\n", getsemval(sem_id, 0));
+  
+  if(getsemval(sem_id, 0) == -1){
+    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+  }
+  
   debug_individuo(me);
   
   shm_id = shmget(shm_key, 0, 0);

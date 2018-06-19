@@ -30,4 +30,5 @@ int reserveSem(int semId, int semNum);
 int releaseSem(int semId, int semNum);
 
 int getsemval(int semId, int semNum);
+
 #endif /* SEMAPHORE_H */

@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include <time.h>
 #include "library.h"
 #include "sharedmem.h"
@@ -198,8 +199,19 @@ int main() {
     exit(EXIT_FAILURE);
   }
   
-  sem_id = semget(KEY_SEM, 1, IPC_CREAT | IPC_EXCL);
-  initSemInUse(sem_id, 0);
+  sem_id = semget(KEY_SEM, 1, IPC_CREAT | IPC_EXCL | 0666);
+  if(sem_id == -1){
+    printf("Errore nella creazione dei semafori\n");
+    exit(EXIT_FAILURE);
+  }
+  if(initSemInUse(sem_id, 0) == -1){
+    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+  }
+  if(getsemval(sem_id, 0) == -1){
+    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+  }
+  //reserveSem(sem_id, 0);
+  
   
   msgq_id = msgget(KEY_MSGQ, IPC_CREAT | IPC_EXCL);
   if(msgq_id == -1){
@@ -228,7 +240,11 @@ int main() {
 		}
   }
 
-  releaseSem(sem_id, 0);
+  printf("Valore getsemval: %d\n", getsemval(sem_id, 0));
+  
+  if(releaseSem(sem_id, 0) != 0){
+    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+  }
   //unlocksem(sem_id, 0);
   /*inizio = clock();
   bdclock = inizio;*/

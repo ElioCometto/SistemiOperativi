@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 #include "library.h"
 #include "sharedmem.h"
 #include "semaphore.h"
@@ -182,12 +183,17 @@ void (*handler(int sig)){
 int main(int argc, char* argv[]) {
   me = initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
   int shm_id, sem_id;
-
-  leggi_file();
-  sem_id = semget(KEY_SEM, 0, 0);
-  getsemval(sem_id, 0);
   
   printf("Sono il processo_B\n");
+  leggi_file();
+  sem_id = semget(KEY_SEM, 0, 0666);
+  printf("Valore getsemval B: %d\n", getsemval(sem_id, 0));
+  //while( < 0){}
+  //getsemval(sem_id, 0);
+  if(getsemval(sem_id, 0) == -1){
+    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+  }
+  
   
   msgq_id = msgget(KEY_MSGQ,0);
   
