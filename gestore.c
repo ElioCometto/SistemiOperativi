@@ -192,7 +192,7 @@ int main() {
 
   persone = (individuo*) malloc(sizeof(individuo) * init_people);
   
-  puntatore_shm = createshm(shm_key, sizeof(_individuo) * init_people, &shm_id);
+  puntatore_shm = createshm(KEY_MEMORIA, sizeof(_individuo) * init_people, &shm_id);
   
   if(puntatore_shm == NULL){
     printf("Errore nella creazione della memoria condivisa\n");
@@ -212,7 +212,7 @@ int main() {
   }*/
   
   
-  msgq_id = msgget(KEY_MSGQ, IPC_CREAT | IPC_EXCL);
+  msgq_id = msgget(KEY_MSGQ, IPC_CREAT | IPC_EXCL | 0666);
   if(msgq_id == -1){
     printf("Errore nella creazione della coda di messaggi\n");
     exit(EXIT_FAILURE);
@@ -240,10 +240,12 @@ int main() {
   }
 
   printf("Valore del semaforo G %d\n", getVal(sem_id));
- 
+  fflush(stdout);
+  
   sleep(1.0);
   if(releaseSem(sem_id, 0) != 0){
     printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
+    fflush(stderr);
   }
   printf("Valore del semaforo G %d\n", getVal(sem_id));
   

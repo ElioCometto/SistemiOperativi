@@ -74,18 +74,21 @@ int comparator(unsigned long gen1, unsigned long gen2){
 
 void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_oggetto){
 	struct msgbuf sbuf;
-
+  
 	sbuf.mtype = pid_destinatario;
-	sbuf.mtext[0] = stato; // stato di accetatto (1), rifiutato(0)
-	sbuf.mtext[1] = pid_oggetto;
+	sbuf.m.data = stato;
+	sbuf.m.pid = pid_oggetto;
 
-	//Scrivi su coda di messaggi OK(verso processo B)
-  if(msgsnd(msgq_id, &sbuf, sizeof(sbuf),0) != 0){
-    printf("Errore nello scriver al processo A\n");
+  printf("Message type: %lu\n", sbuf.mtype);
+  printf("Genoma B: %lu\n", sbuf.m.data);
+  printf("Pid B: %lu\n\n", sbuf.m.pid);
+
+  if(msgsnd(msgq_id, &sbuf, sizeof(sbuf) + 1, 0) != 0){
+    printf("Errore nello scrivere al processo A: %s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
   
-  printf("Ho scritto al processo A con pid %lu\n", &pid_destinatario);
+  //printf("Ho scritto al processo A con pid %lu\n", pid_destinatario);
 }
 
 void ordina_array(individuo *arrA, int numA){
@@ -114,15 +117,17 @@ int leggi_messaggio(){
 }
 
 void contatta_processo_A(individuo *arrA, int numA){
-  int i;
+  int i = 0;
   
   while(i < numA){
+    //printf("Contatto individuo A con pid: %lu\n", arrA[i]->pid);
     invia_messaggio(me->genoma, arrA[i]->pid, me->pid);
+    
     sleep(0.25);
     while(leggi_messaggio() <= 0){
       sleep(0.1);
     }
-    if(leggi_messaggio > 0){
+    if(leggi_messaggio() > 0){
       invia_messaggio(getpid(), getppid(), arrA[i]->pid);
       libera_risorse();
     }
@@ -131,35 +136,34 @@ void contatta_processo_A(individuo *arrA, int numA){
 }
 
 void scegli_A(individuo shm){
-  /*leggo da file quanti processi ci sono per allocare un array della lunghezza giusta*/
-  int i,j, numA;
-  char *shptr;
+  int i, numA;
   individuo *arrA;
-  
-  printf("Scelgo individuo A\n");
   
   arrA = (individuo *) malloc(sizeof(individuo) * init_people);
 
   numA = 0;
   
   reserveSem(sem_id, 0);
+  printf("Scelgo individuo A\n");
   printf("Sezione critica\n");
-  
+  fflush(stdout);
+  		
   for(i = 0; i < init_people; i++){
     if(shm[i].pid != 0){
+      arrA[numA]->tipo[0] = 'A';
+      arrA[numA]->tipo[1] = '\0';
+      arrA[numA]->name = NULL;
       arrA[numA]->genoma = shm[i].genoma;
       arrA[numA]->pid = shm[i].pid;
-      debug_individuo(arrA[numA]);
+      //debug_individuo(arrA[numA]);
       numA++; 
     }
   }
-  
-  print_shm(shm, init_people);
-  
-  releaseSem(sem_id, 0);
-  
-  
-
+    
+  if(releaseSem(sem_id, 0) != 0){
+    printf("Impossibile rilasciare semaforo processo B: %s\n", strerror(errno));
+  }
+  printf("Esco dalla sezione critica\n");
   ordina_array(arrA, numA);
   
   for(i = 0; i < numA; i++){
@@ -167,6 +171,7 @@ void scegli_A(individuo shm){
   }
   
   contatta_processo_A(arrA, numA);
+  fflush(stdout);
   
   /*for(i = 0; i <init_people; i++){
     if(arrA[i]->genoma != 0){
@@ -207,19 +212,19 @@ int main(int argc, char* argv[]) {
   leggi_file();
   sem_id = semget(KEY_SEM, 0, 0666);
   if(sem_id == -1){
-     printf("Errore nella letture della coda di messaggi processo B: %s\n", strerror(errno));
+     printf("Errore nella letture del semaforo processo B: %s\n", strerror(errno));
   }
   
   while(getVal(sem_id) != 1){
     sleep(0.5);
   }
  
-  msgq_id = msgget(KEY_MSGQ,0);
+  msgq_id = msgget(KEY_MSGQ, 0);
   if(msgq_id == -1){
      printf("Errore nella letture della coda di messaggi processo B: %s\n", strerror(errno));
   }
   
-  shm_id = shmget(shm_key, 0, 0);
+  shm_id = shmget(KEY_MEMORIA, 0, 0);
   puntatore_shm = (individuo) shmat(shm_id, NULL, 0);
   if(puntatore_shm == NULL){
     printf("Errore nella lettura della memoria condivisa\n");
@@ -229,7 +234,7 @@ int main(int argc, char* argv[]) {
   while(1){
     sleep(1.0);
     scegli_A(puntatore_shm);
-    
+    fflush(stdout);
   }
 }
 

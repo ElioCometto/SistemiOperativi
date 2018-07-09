@@ -18,7 +18,7 @@
 #define SHM_SPACE sizeof(unsigned long) * 3
 #define strlens(s) (s==NULL?0:strlen(s))
 
-key_t shm_key = 5555;
+//key_t shm_key = 5555;
 
 /* struttura fondamentale che memorizza i dati dell'individuo */
 typedef struct Individuo{
@@ -29,11 +29,19 @@ typedef struct Individuo{
 } _individuo;
 typedef _individuo* individuo;
 
+/* struttura del messaggio che contiene lo stato (letto o non letto) e il genoma di chi invia */
+typedef struct msg
+{
+  unsigned long data;
+  pid_t pid;
+}messaggio;
+
 /*  struttura per l'invio di messaggi */
 struct msgbuf{
   long mtype;
-  unsigned long mtext[2];
+  messaggio m;
 };
+//struct msqid_ds buf;
 
 
 /* Permette di deallocare la memoria usata dalle malloc della struct _individuo */

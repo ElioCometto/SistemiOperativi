@@ -7,7 +7,7 @@
 float target;
 individuo me;
 int sem_id, msgq_id;
-struct msgbuf *msgp;
+struct msgbuf msgp;
 void *shm;
 unsigned long pidB;
 
@@ -39,7 +39,7 @@ individuo initialize_individuo(char* name, unsigned long gen){
 void scrivi_info(individuo meshm){
   int i = 0, flag = 0;
 
-  reserveSem(sem_id,0);
+  reserveSem(sem_id, 0);
 
   while(i<5 && flag == 0){
   	if(meshm[i].pid == 0){
@@ -51,7 +51,7 @@ void scrivi_info(individuo meshm){
 
   	i++;
   }
-  releaseSem(sem_id,0);
+  releaseSem(sem_id, 0);
 }
 
 
@@ -72,9 +72,12 @@ unsigned long MCD(unsigned long gen1, unsigned long gen2){
 int valuta_info(){
   //char *msg = ((struct msgbuf)msgp)->mtext;
 	//unsigned long genB = strtoul(msg, NULL, 10); //ci siamo salvati il genoma del processo B
-	unsigned long genB = (unsigned long)msgp->mtext[0];
-  pidB = (unsigned long)msgp->mtext[1];
+	unsigned long genB = msgp.m.data;
+  pidB = msgp.m.pid;
 	unsigned long mcd = MCD(genB, me->genoma);
+	
+	printf("Sono stato contattato dal processo B con pid: %lu\n", genB);
+	
 	if(mcd == me->genoma){
 		return 1;
 	}
@@ -95,8 +98,8 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
 	struct msgbuf sbuf;
 
 	sbuf.mtype = pid_destinatario;
-	sbuf.mtext[0] = stato; // stato di accetatto (1), rifiutato(0)
-	sbuf.mtext[1] = pid_oggetto;
+	sbuf.m.data = stato; // stato: accetatto (1), rifiutato(0)
+	sbuf.m.pid = pid_oggetto;
 
 	  //Scrivi su coda di messaggi OK(verso processo B)
     if(msgsnd(msgq_id, &sbuf, sizeof(sbuf),0)){
@@ -140,12 +143,14 @@ int main(int argc, char* argv[]) {
   
   reserveSem(sem_id, 0);
   debug_individuo(me);
+  fflush(stdout);
   releaseSem(sem_id, 0);
   
-  shm_id = shmget(shm_key, 0, 0);
+  shm_id = shmget(KEY_MEMORIA, 0, 0);
   shm = (individuo) shmat(shm_id, NULL, 0);
   if(shm == NULL){
     printf("Errore: memoria condivisa NON trovata\n");
+    fflush(stderr);
     exit(EXIT_FAILURE);
   }
   
@@ -154,15 +159,18 @@ int main(int argc, char* argv[]) {
   //print_shm(shm, 5);
   
   //Crea la coda dei messaggi 
-  msgq_id = msgget(KEY_MSGQ,0);
+  msgq_id = msgget(KEY_MSGQ, 0);
   if(msgq_id == -1) {
     printf("Errore: coda dei messaggi NON trovata\n");
+    fflush(stderr);
     exit(EXIT_FAILURE);
   } 
   
   while(1){
-    if(msgrcv(msgq_id, msgp, sizeof(struct msgbuf), me->pid, 0) > 0){
+    //if(msgrcv(msgq_id, &msgp, buf, me->pid, 0) > 0){
+    if(msgrcv(msgq_id, &msgp, sizeof(struct msgbuf), me->pid, 0) > 0){
       //Valuta informazioni di B 
+      
       va_bene = valuta_info();
       
       if (va_bene){
