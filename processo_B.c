@@ -9,7 +9,7 @@
 
 int init_people;
 int msgq_id;
-struct msgbuf *msgp;
+struct msgbuf msgp;
 void *puntatore_shm;
 individuo me;
 int sem_id;
@@ -33,16 +33,16 @@ individuo initialize_individuo(char* name, unsigned long gen){
   pers->name = (char *) malloc(sizeof(char) * (strlens(name) + 1));
   
   if(pers->name == NULL){
-    printf("Error: can't initialize the struct in individuo_A");
+    printf("Error: can't initialize the struct in individuo_B");
     exit(EXIT_FAILURE);
   }
   
-  pers->tipo[0] = 'A';
+  pers->tipo[0] = 'B';
   pers->tipo[1] = '\0';
   for(i = 0; i < strlens(name); i++){
     pers->name[i] = name[i];
   }
-  pers->name[i + 1] = '\0';
+  //pers->name[i + 1] = '\0';
   pers->name[strlens(name)] = '\0';
   pers->genoma = gen;
   
@@ -83,12 +83,10 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
   printf("Genoma B: %lu\n", sbuf.m.data);
   printf("Pid B: %lu\n\n", sbuf.m.pid);
 
-  if(msgsnd(msgq_id, &sbuf, sizeof(sbuf) + 1, 0) != 0){
+  if(msgsnd(msgq_id, &sbuf, sizeof(sbuf) - sizeof(long), 0) != 0){
     printf("Errore nello scrivere al processo A: %s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  
-  //printf("Ho scritto al processo A con pid %lu\n", pid_destinatario);
 }
 
 void ordina_array(individuo *arrA, int numA){
@@ -111,9 +109,15 @@ void ordina_array(individuo *arrA, int numA){
 }
 
 int leggi_messaggio(){
-  ssize_t nbyte = msgrcv(msgq_id, msgp, sizeof(struct msgbuf), me->pid, 0);
+  ssize_t nbyte = msgrcv(msgq_id, &msgp, sizeof(struct msgbuf) + 1, me->pid, 0);
+  unsigned long risposta = msgp.m.data;
+  unsigned long pidA = msgp.m.pid;
   
-  return nbyte;
+  if(risposta > 0){
+  	printf("Sono stato contattato dal processo A con pid: %lu\n", pidA);
+    return risposta;
+  }else
+    return nbyte;
 }
 
 void contatta_processo_A(individuo *arrA, int numA){
@@ -124,7 +128,7 @@ void contatta_processo_A(individuo *arrA, int numA){
     invia_messaggio(me->genoma, arrA[i]->pid, me->pid);
     
     sleep(0.25);
-    while(leggi_messaggio() <= 0){
+    while(leggi_messaggio() == 0){
       sleep(0.1);
     }
     if(leggi_messaggio() > 0){
@@ -152,12 +156,14 @@ void scegli_A(individuo shm){
     if(shm[i].pid != 0){
       arrA[numA]->tipo[0] = 'A';
       arrA[numA]->tipo[1] = '\0';
+      //arrA[numA]->name = (char*) malloc(sizeof(char));
       arrA[numA]->name = NULL;
       arrA[numA]->genoma = shm[i].genoma;
       arrA[numA]->pid = shm[i].pid;
       //debug_individuo(arrA[numA]);
       numA++; 
     }
+    fflush(stdout);
   }
     
   if(releaseSem(sem_id, 0) != 0){
@@ -231,10 +237,10 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
   
-  while(1){
-    sleep(1.0);
+  //while(1){
+  //  sleep(1.0);
     scegli_A(puntatore_shm);
-    fflush(stdout);
-  }
+   // fflush(stdout);
+  //}
 }
 

@@ -27,7 +27,7 @@ individuo initialize_individuo(char* name, unsigned long gen){
   for(i = 0; i < strlens(name); i++){
     pers->name[i] = name[i];
   }
-  pers->name[i + 1] = '\0';
+  //pers->name[i + 1] = '\0';
   pers->name[strlens(name)] = '\0';
   pers->genoma = gen;
   
@@ -41,7 +41,7 @@ void scrivi_info(individuo meshm){
 
   reserveSem(sem_id, 0);
 
-  while(i<5 && flag == 0){
+  while(i < 5 && flag == 0){
   	if(meshm[i].pid == 0){
   		strcpy(meshm[i].tipo, me->tipo);
   		meshm[i].genoma = me->genoma;
@@ -98,12 +98,12 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
 	struct msgbuf sbuf;
 
 	sbuf.mtype = pid_destinatario;
-	sbuf.m.data = stato; // stato: accetatto (1), rifiutato(0)
+	sbuf.m.data = stato; // stato: accetatto (1), rifiutato(2)
 	sbuf.m.pid = pid_oggetto;
 
 	  //Scrivi su coda di messaggi OK(verso processo B)
-    if(msgsnd(msgq_id, &sbuf, sizeof(sbuf),0)){
-      printf("Errore nel rispondere al processo B\n");
+    if(msgsnd(msgq_id, &sbuf, sizeof(sbuf) + 1, 0)){
+    printf("Errore nello scrivere sulla coda di messaggi: %s\n", strerror(errno));
       exit(EXIT_FAILURE);
     }
 }
@@ -167,10 +167,9 @@ int main(int argc, char* argv[]) {
   } 
   
   while(1){
-    //if(msgrcv(msgq_id, &msgp, buf, me->pid, 0) > 0){
-    if(msgrcv(msgq_id, &msgp, sizeof(struct msgbuf), me->pid, 0) > 0){
+    //if(msgrcv(msgq_id, &msgp, sizeof(msgp.m), me->pid, 0) > 0){
+    if(msgrcv(msgq_id, &msgp, sizeof(struct msgbuf) + 1, me->pid, 0) > 0){
       //Valuta informazioni di B 
-      
       va_bene = valuta_info();
       
       if (va_bene){
@@ -184,10 +183,12 @@ int main(int argc, char* argv[]) {
         libera_risorse();
       } else {
       //Scrivi su coda di messaggi NO(verso processo B)
-        invia_messaggio(0, pidB, me->pid);
+        invia_messaggio(2, pidB, me->pid);
         abbassa_target();
       }       
-    }
+    }/*else{
+      printf("Impossibile ricevere messaggio: %s\n", strerror(errno));
+    }*/
     sleep(0.5);
   }
 }
