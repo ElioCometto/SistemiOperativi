@@ -50,6 +50,21 @@ void pulisci_persona (individuo p){
   free((void*) p);
 }
 
+void updatemsgqueue(int msgq_id){
+  struct msqid_ds buf;
+  
+  buf.msg_qbytes = sizeof(messaggio) * 300;
+  msgctl(msgq_id, IPC_SET, &buf);
+}
+
+void printmsgqueue(int msgq_id){
+  struct msqid_ds buf;
+  
+  msgctl(msgq_id, IPC_STAT, &buf);  
+  
+  printf("Massimo numero di byte in coda: %lu\n\n", buf.msg_qbytes);
+}
+
 
 /*  Esegue la stampa  di tutti gli attributi di un individuo  */
 void debug_individuo(individuo test){
@@ -89,7 +104,8 @@ void print_shm(individuo pshm, int individui){
 char* unslong_to_string(unsigned long ul){
   int n = snprintf(NULL, 0, "%lu", ul);
   char* buf = (char *) malloc(n+1);
-  int c = snprintf(buf, n+1, "%lu", ul);
+  
+  snprintf(buf, n+1, "%lu", ul);
   
   return buf;
 }
@@ -122,8 +138,8 @@ char **strsplit(const char* str, const char* delim, size_t* numtokens) {
 }
 
 
-void (*sighandler(int signum)){
+/*void (*sighandler(int signum)){
   printf("sono sighandler\n");
-}
+}*/
 
 #endif 

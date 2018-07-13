@@ -7,7 +7,7 @@
 float target;
 individuo me;
 int sem_id, msgq_id;
-struct msgbuf msgp;
+struct msgbuf msgp_r;
 void *shm;
 unsigned long pidB;
 
@@ -72,11 +72,11 @@ unsigned long MCD(unsigned long gen1, unsigned long gen2){
 int valuta_info(){
   //char *msg = ((struct msgbuf)msgp)->mtext;
 	//unsigned long genB = strtoul(msg, NULL, 10); //ci siamo salvati il genoma del processo B
-	unsigned long genB = msgp.m.data;
-  pidB = msgp.m.pid;
+	unsigned long genB = msgp_r.m.data;
+  pidB = msgp_r.m.pid;
 	unsigned long mcd = MCD(genB, me->genoma);
-	
-	printf("Sono stato contattato dal processo B con pid: %lu\n", genB);
+
+  printf("Sono stato contattato dal processo B con pid: %lu\n", pidB);
 	
 	if(mcd == me->genoma){
 		return 1;
@@ -97,15 +97,15 @@ void abbassa_target(){
 void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_oggetto){
 	struct msgbuf sbuf;
 
-	sbuf.mtype = pid_destinatario;
+	sbuf.mtype = (long) pid_destinatario;
 	sbuf.m.data = stato; // stato: accetatto (1), rifiutato(2)
 	sbuf.m.pid = pid_oggetto;
 
-	  //Scrivi su coda di messaggi OK(verso processo B)
-    if(msgsnd(msgq_id, &sbuf, sizeof(sbuf) + 1, 0)){
-    printf("Errore nello scrivere sulla coda di messaggi: %s\n", strerror(errno));
-      exit(EXIT_FAILURE);
-    }
+  //Scrivi su coda di messaggi OK(verso processo B)
+  if(msgsnd(msgq_id, &sbuf, sizeof(struct msgbuf) - sizeof(long), 0)){
+  printf("Errore nello scrivere sulla coda di messaggi: %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
 }
 
 void libera_risorse(){
@@ -122,15 +122,15 @@ void libera_risorse(){
 }
 
 
-void (*handler(int sig)){
+/*void (*handler(int sig)){
 	if (sig == SIGTERM){
 		libera_risorse();
 	}
-}
+}*/
 
 int main(int argc, char* argv[]) {
   me = initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
-  int shm_id, i;
+  int shm_id;
   target = me->genoma;
   int va_bene;
   
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
   
   while(1){
     //if(msgrcv(msgq_id, &msgp, sizeof(msgp.m), me->pid, 0) > 0){
-    if(msgrcv(msgq_id, &msgp, sizeof(struct msgbuf) + 1, me->pid, 0) > 0){
+    if(msgrcv(msgq_id, &msgp_r, sizeof(struct msgbuf) - sizeof(long), me->pid, 0) > 0){
       //Valuta informazioni di B 
       va_bene = valuta_info();
       

@@ -75,16 +75,42 @@ int comparator(unsigned long gen1, unsigned long gen2){
 void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_oggetto){
 	struct msgbuf sbuf;
   
-	sbuf.mtype = pid_destinatario;
+	sbuf.mtype = (long) pid_destinatario;
 	sbuf.m.data = stato;
 	sbuf.m.pid = pid_oggetto;
 
   printf("Message type: %lu\n", sbuf.mtype);
   printf("Genoma B: %lu\n", sbuf.m.data);
-  printf("Pid B: %lu\n\n", sbuf.m.pid);
+  printf("Pid B: %d\n\n", sbuf.m.pid);
 
-  if(msgsnd(msgq_id, &sbuf, sizeof(sbuf) - sizeof(long), 0) != 0){
-    printf("Errore nello scrivere al processo A: %s\n", strerror(errno));
+  if(msgsnd(msgq_id, &sbuf, sizeof(struct msgbuf) - sizeof(long), 0) != 0){
+    if(errno == EACCES){
+      printf("EACCESS: %s\n", strerror(errno));
+    }
+    if(errno == EAGAIN){
+      printf("EAGAIN: %s\n", strerror(errno));
+    }
+    if(errno == EFAULT){
+      printf("EFAULT: %s\n", strerror(errno));
+    }
+    if(errno == EIDRM){
+      printf("EIDRM: %s\n", strerror(errno));
+    }
+    if(errno == EINTR){
+      printf("EINTR: %s\n", strerror(errno));
+    }
+    if(errno == EINVAL){
+      printf("EINVAL: %s\n", strerror(errno));
+    }
+    if(errno == ENOMEM){
+      printf("ENOMEM: %s\n", strerror(errno));
+    }
+    
+    //Invalid msqid value, or nonpositive mtype value, or invalid msgsz value  (less
+    //than 0 or greater than the system value MSGMAX).
+
+  
+    //printf("Errore nello scrivere al processo A: %s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
 }
@@ -109,7 +135,7 @@ void ordina_array(individuo *arrA, int numA){
 }
 
 int leggi_messaggio(){
-  ssize_t nbyte = msgrcv(msgq_id, &msgp, sizeof(struct msgbuf) + 1, me->pid, 0);
+  ssize_t nbyte = msgrcv(msgq_id, &msgp, sizeof(struct msgbuf) - sizeof(long), me->pid, 0);
   unsigned long risposta = msgp.m.data;
   unsigned long pidA = msgp.m.pid;
   
@@ -122,6 +148,7 @@ int leggi_messaggio(){
 
 void contatta_processo_A(individuo *arrA, int numA){
   int i = 0;
+  int risp;
   
   while(i < numA){
     //printf("Contatto individuo A con pid: %lu\n", arrA[i]->pid);
@@ -131,9 +158,11 @@ void contatta_processo_A(individuo *arrA, int numA){
     while(leggi_messaggio() == 0){
       sleep(0.1);
     }
-    if(leggi_messaggio() > 0){
-      invia_messaggio(getpid(), getppid(), arrA[i]->pid);
-      libera_risorse();
+    if((risp = leggi_messaggio()) > 0){
+      if(risp == 1){
+        invia_messaggio(getpid(), getppid(), arrA[i]->pid);
+        libera_risorse();
+      }
     }
     i++;
   }
@@ -172,9 +201,9 @@ void scegli_A(individuo shm){
   printf("Esco dalla sezione critica\n");
   ordina_array(arrA, numA);
   
-  for(i = 0; i < numA; i++){
+  /*for(i = 0; i < numA; i++){
     debug_individuo(arrA[i]);
-  }
+  }*/
   
   contatta_processo_A(arrA, numA);
   fflush(stdout);
@@ -227,7 +256,7 @@ int main(int argc, char* argv[]) {
  
   msgq_id = msgget(KEY_MSGQ, 0);
   if(msgq_id == -1){
-     printf("Errore nella letture della coda di messaggi processo B: %s\n", strerror(errno));
+     printf("Errore nella lettura della coda di messaggi processo B: %s\n", strerror(errno));
   }
   
   shm_id = shmget(KEY_MEMORIA, 0, 0);
@@ -237,10 +266,10 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
   
-  //while(1){
-  //  sleep(1.0);
+  while(1){
+    sleep(1.0);
     scegli_A(puntatore_shm);
-   // fflush(stdout);
-  //}
+    fflush(stdout);
+  }
 }
 

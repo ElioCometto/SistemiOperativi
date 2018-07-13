@@ -31,7 +31,7 @@ int popolazione[2];
 individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene){
 	char nome[strlens(nome_padre) + strlens(nome_madre) + 2];
 	char nome_tmp;
-	unsigned long genoma;
+	//unsigned long genoma;
   individuo persona = (individuo) malloc(sizeof(individuo));
   persona->name = (char*) malloc(sizeof(char) * (strlens(nome_padre) + strlens(nome_madre) + 2));
   int i = 0, j = 0;  
@@ -154,7 +154,7 @@ void crea_persona(individuo p){
  */
 void uccidi_individuo(individuo *persone){
   individuo tmp_individuo = rimuovi_individuo(persone);
-  int i = 0;
+  //int i = 0;
     
   kill(tmp_individuo->pid, SIGTERM);
     
@@ -176,18 +176,17 @@ void aumenta_popolazione(individuo p){
 
 
 int main() {
-  char *line_buffer = (char *) malloc(sizeof(char) * MAX_LENGHT);
+  //char *line_buffer = (char *) malloc(sizeof(char) * MAX_LENGHT);
   int i, status;
   pid_t child_pid, wpid;
   individuo* persone;
   void *puntatore_shm;
-  char persona_pointer[sizeof(individuo)];
+  //char persona_pointer[sizeof(individuo)];
   int sem_id;
   int msgq_id;
   clock_t inizio, bdclock;
   
   srand(time(NULL));
-
   leggi_file();
 
   persone = (individuo*) malloc(sizeof(individuo) * init_people);
