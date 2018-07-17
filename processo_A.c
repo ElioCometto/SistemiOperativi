@@ -6,9 +6,9 @@
 
 float target;
 individuo me;
-int sem_id, msgq_id;
+int sem_id, msgq_id, pos_shm;
 struct msgbuf msgp_r;
-void *shm;
+individuo shm;
 unsigned long pidB;
 
 
@@ -51,6 +51,7 @@ void scrivi_info(individuo meshm){
 
   	i++;
   }
+  pos_shm = i;
   releaseSem(sem_id, 0);
 }
 
@@ -59,14 +60,17 @@ unsigned long MCD(unsigned long gen1, unsigned long gen2){
 	unsigned long r; //resto
 	unsigned long a = gen1;
 	unsigned long b = gen2; 
-
-	 while(b != 0){
-	 	r = a % b;
+  
+  if(a % b == 0)
+    return b;
+  
+	while(b != 0){
+		r = a % b;
 	 	a = b;
 	 	b = r;
-	 }
+	}
 	 
-	 return a;
+	return a;
 }
 
 int valuta_info(){
@@ -109,16 +113,13 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
 }
 
 void libera_risorse(){
-	if(msgctl(msgq_id, IPC_RMID, NULL) == -1){
-      printf("Errore nella chiusura della coda di messaggi\n");
-      exit(EXIT_FAILURE);
-    }
-    if(shmdt(shm) == -1){
-      printf("Errore nel staccarsi dalla memoria condivisa\n");
-      exit(EXIT_FAILURE);
-    }
-    pulisci_persona(me);
-    exit(1);
+  shm[pos_shm].pid = 0;
+  if(shmdt(shm) == -1){
+    printf("Errore nel staccarsi dalla memoria condivisa\n");
+    exit(EXIT_FAILURE);
+  }
+  pulisci_persona(me);
+  exit(1);
 }
 
 
@@ -166,17 +167,19 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   } 
   
+  //sleep(1.5);
   while(1){
     //if(msgrcv(msgq_id, &msgp, sizeof(msgp.m), me->pid, 0) > 0){
     if(msgrcv(msgq_id, &msgp_r, sizeof(struct msgbuf) - sizeof(long), me->pid, 0) > 0){
       //Valuta informazioni di B 
       va_bene = valuta_info();
       
-      if (va_bene){
+      if(va_bene){
       	//Invia al processo B il messaggio e gli comunica che è stato accetatto
       	invia_messaggio(1, pidB, me->pid);
 
         //Invia al gestore il pid del processo B con cui si è accoppiato
+        printf("Processo A invio al gestore.\n");
         invia_messaggio(getpid(), getppid(), pidB);
 
         //Termina liberando risorse 

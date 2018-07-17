@@ -46,8 +46,8 @@ struct msgbuf{
 
 /* Permette di deallocare la memoria usata dalle malloc della struct _individuo */
 void pulisci_persona (individuo p){
-  free((void*) p->name);
-  free((void*) p);
+  free(p->name);
+  free(p);
 }
 
 void updatemsgqueue(int msgq_id){
@@ -117,13 +117,13 @@ char **strsplit(const char* str, const char* delim, size_t* numtokens) {
     char **tokens = calloc(tokens_alloc, sizeof(char*));
     char *token, *strtok_ctx;
     for (token = strtok_r(s, delim, &strtok_ctx);
-            token != NULL;
-            token = strtok_r(NULL, delim, &strtok_ctx)) {
-        if (tokens_used == tokens_alloc) {
-            tokens_alloc *= 2;
-            tokens = realloc(tokens, tokens_alloc * sizeof(char*));
-        }
-        tokens[tokens_used++] = strdup(token);
+      token != NULL;
+      token = strtok_r(NULL, delim, &strtok_ctx)) {
+      if (tokens_used == tokens_alloc) {
+          tokens_alloc *= 2;
+          tokens = realloc(tokens, tokens_alloc * sizeof(char*));
+      }
+      tokens[tokens_used++] = strdup(token);
     }
     // cleanup
     if (tokens_used == 0) {

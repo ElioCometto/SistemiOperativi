@@ -15,16 +15,12 @@ individuo me;
 int sem_id;
 
 void libera_risorse(){
-	if(msgctl(msgq_id, IPC_RMID, NULL) == -1){
-      printf("Errore nella chiusura della coda di messaggi\n");
-      exit(EXIT_FAILURE);
-    }
-    if(shmdt(puntatore_shm) == -1){
-      printf("Errore nel staccarsi dalla memoria condivisa\n");
-      exit(EXIT_FAILURE);
-    }
-    pulisci_persona(me);
-    exit(1);
+  if(shmdt(puntatore_shm) == -1){
+    printf("Errore nel staccarsi dalla memoria condivisa\n");
+    exit(EXIT_FAILURE);
+  }
+  pulisci_persona(me);
+  exit(1);
 }
 
 individuo initialize_individuo(char* name, unsigned long gen){
@@ -53,8 +49,8 @@ individuo initialize_individuo(char* name, unsigned long gen){
 
 unsigned long MCD(unsigned long genB, unsigned long genA){
 	unsigned long r; //resto
-	unsigned long a = genA;
-	unsigned long b = genB; 
+	unsigned long a = genB;
+	unsigned long b = genA; 
 
 	 while(b != 0){
 	 	r = a % b;
@@ -76,14 +72,14 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
 	struct msgbuf sbuf;
   
 	sbuf.mtype = (long) pid_destinatario;
-	sbuf.m.data = stato;
+	sbuf.m.data = (unsigned long) stato;
 	sbuf.m.pid = pid_oggetto;
 
   printf("Message type: %lu\n", sbuf.mtype);
   printf("Genoma B: %lu\n", sbuf.m.data);
   printf("Pid B: %d\n\n", sbuf.m.pid);
 
-  if(msgsnd(msgq_id, &sbuf, sizeof(struct msgbuf) - sizeof(long), 0) != 0){
+  if(msgsnd(msgq_id, &sbuf, sizeof(struct msgbuf) - sizeof(long), MSG_NOERROR) != 0){
     if(errno == EACCES){
       printf("EACCESS: %s\n", strerror(errno));
     }
@@ -137,10 +133,10 @@ void ordina_array(individuo *arrA, int numA){
 int leggi_messaggio(){
   ssize_t nbyte = msgrcv(msgq_id, &msgp, sizeof(struct msgbuf) - sizeof(long), me->pid, 0);
   unsigned long risposta = msgp.m.data;
-  unsigned long pidA = msgp.m.pid;
+  pid_t pidA = msgp.m.pid;
   
   if(risposta > 0){
-  	printf("Sono stato contattato dal processo A con pid: %lu\n", pidA);
+  	printf("Sono stato contattato dal processo A con pid: %lu, risposta: %d\n", pidA, risposta);
     return risposta;
   }else
     return nbyte;
@@ -148,24 +144,30 @@ int leggi_messaggio(){
 
 void contatta_processo_A(individuo *arrA, int numA){
   int i = 0;
-  int risp;
+  int risp, flag = 0;
   
-  while(i < numA){
+  while(i < numA || flag == 0){
     //printf("Contatto individuo A con pid: %lu\n", arrA[i]->pid);
     invia_messaggio(me->genoma, arrA[i]->pid, me->pid);
     
     sleep(0.25);
-    while(leggi_messaggio() == 0){
-      sleep(0.1);
+    while((risp = leggi_messaggio()) == 0){
+      sleep(0.25);
     }
-    if((risp = leggi_messaggio()) > 0){
+    if(risp > 0){
       if(risp == 1){
+        flag = 1; 
         invia_messaggio(getpid(), getppid(), arrA[i]->pid);
+        printf("Processo B invio al gestore.\n");
         libera_risorse();
+      }else if(risp == 2){
+        printf("Sono stato rifiutato dal processo A.\n");
       }
     }
     i++;
   }
+  if(flag == 1)
+    exit(1);
 }
 
 void scegli_A(individuo shm){
@@ -189,15 +191,13 @@ void scegli_A(individuo shm){
       arrA[numA]->name = NULL;
       arrA[numA]->genoma = shm[i].genoma;
       arrA[numA]->pid = shm[i].pid;
-      //debug_individuo(arrA[numA]);
+      debug_individuo(arrA[numA]);
       numA++; 
     }
     fflush(stdout);
   }
     
-  if(releaseSem(sem_id, 0) != 0){
-    printf("Impossibile rilasciare semaforo processo B: %s\n", strerror(errno));
-  }
+  releaseSem(sem_id, 0);
   printf("Esco dalla sezione critica\n");
   ordina_array(arrA, numA);
   
@@ -206,8 +206,6 @@ void scegli_A(individuo shm){
   }*/
   
   contatta_processo_A(arrA, numA);
-  fflush(stdout);
-  
   /*for(i = 0; i <init_people; i++){
     if(arrA[i]->genoma != 0){
       pulisci_persona(arrA[i]);

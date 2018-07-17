@@ -24,6 +24,7 @@ int birth_death = 0;
 int sim_time = 0;
 int shm_id = 0;
 int popolazione[2];
+struct msgbuf msgp_r;
 
 /**  
  *  Crea un individuo 
@@ -62,6 +63,44 @@ individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene){
 
   strncpy(persona->name, nome, strlens(nome_padre) + strlens(nome_madre) + 2);
   persona->genoma = x + (rand() % (x + gene));
+     
+  return persona;
+}
+
+individuo crea_individuoA(){
+  individuo persona = (individuo) malloc(sizeof(individuo));
+  persona->name = (char*) malloc(sizeof(char) * 2);
+
+  if(persona == NULL){
+    printf("Error: can't initialize the struct individuo");
+    exit(EXIT_FAILURE);
+  }
+  
+  persona->tipo[0] = 'A';
+  persona->tipo[1] = '\0';
+  
+  persona->name[0] = 'A';
+  persona->name[1] = '\0';
+  persona->genoma = 100;
+     
+  return persona;
+}
+
+individuo crea_individuoB(){
+  individuo persona = (individuo) malloc(sizeof(individuo));
+  persona->name = (char*) malloc(sizeof(char) * 2); 
+
+  if(persona == NULL){
+    printf("Error: can't initialize the struct individuo");
+    exit(EXIT_FAILURE);
+  }
+  
+  persona->tipo[0] = 'B';
+  persona->tipo[1] = '\0';
+  
+  persona->name[0] = 'B';
+  persona->name[1] = '\0';
+  persona->genoma = 200;
      
   return persona;
 }
@@ -173,6 +212,13 @@ void aumenta_popolazione(individuo p){
   }
 }
 
+int valuta_info(){
+  pid_t pid = msgp_r.m.pid;
+
+  printf("Sono stato contattato dal processo con pid: %lu\n", pid);
+  return;
+}
+
 
 
 int main() {
@@ -189,7 +235,8 @@ int main() {
   srand(time(NULL));
   leggi_file();
 
-  persone = (individuo*) malloc(sizeof(individuo) * init_people);
+  //persone = (individuo*) malloc(sizeof(individuo) * init_people);
+  persone = (individuo*) malloc(sizeof(individuo) * 2);
   
   puntatore_shm = createshm(KEY_MEMORIA, sizeof(_individuo) * init_people, &shm_id);
   
@@ -217,10 +264,13 @@ int main() {
     exit(EXIT_FAILURE);
   }
   
+  /*persone[0] = crea_individuoA();
+  persone[1] = crea_individuoB();*/
+  
   for(i = 0; i < init_people; i++){
     persone[i] = init_individuo(NULL, NULL, 2, genes);
     aumenta_popolazione(persone[i]);
-   
+  //for(i = 0; i < 2; i++){
     switch(child_pid = fork()){
 			case -1:
 			  perror("errore fork()");
@@ -237,16 +287,13 @@ int main() {
 				break;
 		}
   }
-
-  printf("Valore del semaforo G %d\n", getVal(sem_id));
-  fflush(stdout);
+  
   
   sleep(1.0);
   if(releaseSem(sem_id, 0) != 0){
     printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
     fflush(stderr);
   }
-  printf("Valore del semaforo G %d\n", getVal(sem_id));
   
   /*inizio = clock();
   bdclock = inizio;*/
@@ -265,16 +312,21 @@ int main() {
     bdclock = clock();
   }
   */ 
-  
+  while(1){
+    if(msgrcv(msgq_id, &msgp_r, sizeof(struct msgbuf) - sizeof(long), getpid(), 0) > 0){
+      valuta_info();
+      i++;
+    }  
+  }
   while ((wpid = wait(&status)) > 0);
   printf("%d processi A creati.\n", popolazione[0]);
   printf("%d processi B creati.\n", popolazione[1]);
   
-  print_shm(puntatore_shm, init_people);
+  //print_shm(puntatore_shm, init_people);
 
-  for(i = 0; i <init_people; i++){
+  /*for(i = 0; i <init_people; i++){
     //pulisci_persona(persone[i]);
-  } 
+  } */
   //print_shm(puntatore_shm, init_people);
 }
 
