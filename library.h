@@ -83,12 +83,12 @@ void test_stampa_individuo(_individuo test){
   getsemval(sem_id);
   locksem(sem_id, 0);*/
   
-  if(test.pid != 0){
+  //if(test.pid != 0){
     printf("Genere : %s\n", test.tipo);
     printf("Nome: %s\n", test.name);
     printf("Genoma: %lu\n", test.genoma);
     printf("Pid: %lu\n\n", (unsigned long)test.pid);
-  }
+  //}
   //unlocksem(sem_id, 0);
 }
 

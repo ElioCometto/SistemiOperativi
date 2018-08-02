@@ -185,8 +185,9 @@ void scegli_A(individuo shm){
   		
   for(i = 0; i < init_people; i++){
     if(shm[i].pid != 0){
+      printf("Sono entrato nell'if\n");
       arrA[numA]->tipo[0] = 'A';
-      arrA[numA]->tipo[1] = '\0';
+      arrA[numA]->tipo[1] = '\0'; 
       //arrA[numA]->name = (char*) malloc(sizeof(char));
       arrA[numA]->name = NULL;
       arrA[numA]->genoma = shm[i].genoma;
