@@ -14,12 +14,20 @@ void *puntatore_shm;
 individuo me;
 int sem_id;
 
+
+
+/* Permette di deallocare la memoria usata dalle malloc della struct _individuo */
+void pulisci_persona (){
+  free(me->name);
+  free(me);
+}
+
 void libera_risorse(){
   if(shmdt(puntatore_shm) == -1){
     printf("Errore nel staccarsi dalla memoria condivisa\n");
     exit(EXIT_FAILURE);
   }
-  pulisci_persona(me);
+  pulisci_persona();
   exit(1);
 }
 
@@ -47,7 +55,7 @@ individuo initialize_individuo(char* name, unsigned long gen){
   return pers;
 }
 
-unsigned long MCD(unsigned long genB, unsigned long genA){
+/*unsigned long MCD(unsigned long genB, unsigned long genA){
 	unsigned long r; //resto
 	unsigned long a = genB;
 	unsigned long b = genA; 
@@ -59,7 +67,7 @@ unsigned long MCD(unsigned long genB, unsigned long genA){
 	 }
 	 
 	 return a;
-}
+}*/
 
 int comparator(unsigned long gen1, unsigned long gen2){
   if(MCD(me->genoma, gen1) > MCD(me->genoma, gen2))
@@ -136,7 +144,7 @@ int leggi_messaggio(){
   pid_t pidA = msgp.m.pid;
   
   if(risposta > 0){
-  	printf("Sono stato contattato dal processo A con pid: %lu, risposta: %d\n", pidA, risposta);
+  	printf("Sono stato contattato dal processo A con pid: %lu, risposta: %lu\n", pidA, risposta);
     return risposta;
   }else
     return nbyte;
@@ -185,11 +193,13 @@ void scegli_A(individuo shm){
   		
   for(i = 0; i < init_people; i++){
     if(shm[i].pid != 0){
-      printf("Sono entrato nell'if\n");
+      printf("---- Prima di tipo ------\n");
       arrA[numA]->tipo[0] = 'A';
-      arrA[numA]->tipo[1] = '\0'; 
+      arrA[numA]->tipo[1] = '\0';
+      printf("---- Prima di nome ------\n"); 
       //arrA[numA]->name = (char*) malloc(sizeof(char));
       arrA[numA]->name = NULL;
+      printf("---- Prima di genoma -----\n");
       arrA[numA]->genoma = shm[i].genoma;
       arrA[numA]->pid = shm[i].pid;
       debug_individuo(arrA[numA]);
@@ -212,7 +222,7 @@ void scegli_A(individuo shm){
       pulisci_persona(arrA[i]);
     }
   } */
-  free(arrA);
+  //free(arrA);
 }
 
 void leggi_file(){
@@ -232,10 +242,8 @@ void leggi_file(){
   fclose(fp);
 }
 
-void (*handler(int sig)){
-	if (sig == SIGTERM){
-		libera_risorse();
-	}
+void handler_sigterm(int sig){
+  libera_risorse();
 }
 
 int main(int argc, char* argv[]) {

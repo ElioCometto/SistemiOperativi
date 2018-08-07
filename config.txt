@@ -1,2 +1,2 @@
-5;400;10;60;
+5;400;5;20;
 init_people, genes, birth_death e sim_time

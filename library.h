@@ -20,6 +20,24 @@
 
 //key_t shm_key = 5555;
 
+
+unsigned long MCD(unsigned long gen1, unsigned long gen2){
+	unsigned long r; //resto
+	unsigned long a = gen1;
+	unsigned long b = gen2; 
+  
+  if(a % b == 0)
+    return b;
+  
+	while(b != 0){
+		r = a % b;
+	 	a = b;
+	 	b = r;
+	}
+	 
+	return a;
+}
+
 /* struttura fondamentale che memorizza i dati dell'individuo */
 typedef struct Individuo{
   char tipo[2];
@@ -44,11 +62,11 @@ struct msgbuf{
 //struct msqid_ds buf;
 
 
-/* Permette di deallocare la memoria usata dalle malloc della struct _individuo */
+/* Permette di deallocare la memoria usata dalle malloc della struct _individuo 
 void pulisci_persona (individuo p){
   free(p->name);
   free(p);
-}
+}*/
 
 void updatemsgqueue(int msgq_id){
   struct msqid_ds buf;
@@ -83,12 +101,12 @@ void test_stampa_individuo(_individuo test){
   getsemval(sem_id);
   locksem(sem_id, 0);*/
   
-  //if(test.pid != 0){
+  if(test.pid != 0){
     printf("Genere : %s\n", test.tipo);
     printf("Nome: %s\n", test.name);
     printf("Genoma: %lu\n", test.genoma);
     printf("Pid: %lu\n\n", (unsigned long)test.pid);
-  //}
+  }
   //unlocksem(sem_id, 0);
 }
 

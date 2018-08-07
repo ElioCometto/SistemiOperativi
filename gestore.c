@@ -24,7 +24,12 @@ int birth_death = 0;
 int sim_time = 0;
 int shm_id = 0;
 int popolazione[2];
+individuo* persone;
+int popolazione_attuale;
 struct msgbuf msgp_r;
+individuo tmp_individuo;
+char* nome;
+unsigned long gen;
 
 /**  
  *  Crea un individuo 
@@ -67,6 +72,12 @@ individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene){
   return persona;
 }
 
+/* Permette di deallocare la memoria usata dalle malloc della struct _individuo */
+void pulisci_persona (individuo p){
+  //free(p->name);
+  //free(p);
+}
+
 individuo crea_individuoA(){
   individuo persona = (individuo) malloc(sizeof(individuo));
   persona->name = (char*) malloc(sizeof(char) * 2);
@@ -103,6 +114,31 @@ individuo crea_individuoB(){
   persona->genoma = 200;
      
   return persona;
+}
+
+int eliminaindividuo(pid_t pid){
+  int j, l, i = 0;
+  int flag = 0;
+  
+  while(i < init_people && flag == 0){
+    if(persone[i]->pid == pid){
+      nome = (char*) malloc(sizeof(char) * strlens(persone[i]->name) + 1);
+      for(l = 0; l < strlens(persone[i]->name); l++){
+        nome[l] = persone[i]->name[l];
+      }  
+      nome[strlens(persone[i]->name) + 1] = '\0';
+      gen = persone[i]->genoma;
+    
+      for(j = i; j < init_people - 1; j++){
+        persone[j] = persone[j + 1];
+      }
+      
+      persone[init_people - 1] = NULL;
+      flag = 1;
+    }
+  }
+  
+  return flag; 
 }
 
 /**
@@ -160,16 +196,14 @@ void leggi_file(){
 /**
  *  rimuove l'individuo più vecchio contenuto nell'array persone
  */
-individuo rimuovi_individuo(individuo* persone){
-  individuo tmp = (individuo) malloc(sizeof(individuo));
+void rimuovi_individuo(individuo* persone){
+  tmp_individuo = (individuo) malloc(sizeof(individuo));
   int i;
   
-  tmp = persone[0];
+  tmp_individuo = persone[0];
   for(i = 0; i < init_people - 1; i++){
     persone[i] = persone[i + 1];
   }
-  
-  return tmp;
 }
 
 
@@ -192,12 +226,14 @@ void crea_persona(individuo p){
  *  confronta il genoma dell'individuo rimosso 
  */
 void uccidi_individuo(individuo *persone){
-  individuo tmp_individuo = rimuovi_individuo(persone);
-  //int i = 0;
+  rimuovi_individuo(persone);
     
   kill(tmp_individuo->pid, SIGTERM);
+  //signal(SIGQUIT, handler_sigterm);
     
-  pulisci_persona(tmp_individuo);
+  //pulisci_persona(tmp_individuo);
+  //free(tmp_individuo->name);
+  //free(tmp_individuo);
 }
 
 
@@ -216,27 +252,35 @@ int valuta_info(){
   pid_t pid = msgp_r.m.pid;
 
   printf("Sono stato contattato dal processo con pid: %lu\n", pid);
-  return;
+  return 1;
 }
 
 
 
 int main() {
   //char *line_buffer = (char *) malloc(sizeof(char) * MAX_LENGHT);
-  int i, status;
+  int i, status, elind1, elind2;
   pid_t child_pid, wpid;
-  individuo* persone;
   void *puntatore_shm;
   //char persona_pointer[sizeof(individuo)];
   int sem_id;
   int msgq_id;
-  clock_t inizio, bdclock;
+  //clock_t inizio, bdclock;
+  time_t inizio, fine;
+  double esecuzione = 0;
+  int cont = 1;
+  char* nome1;
+  char* nome2;
+  unsigned long gen1, gen2;
+  popolazione_attuale = init_people;
+  pid_t pid1, pid2;
   
   srand(time(NULL));
+  
   leggi_file();
 
-  //persone = (individuo*) malloc(sizeof(individuo) * init_people);
-  persone = (individuo*) malloc(sizeof(individuo) * 2);
+  persone = (individuo*) malloc(sizeof(individuo) * init_people);
+  //persone = (individuo*) malloc(sizeof(individuo) * 2);
   
   puntatore_shm = createshm(KEY_MEMORIA, sizeof(_individuo) * init_people, &shm_id);
   
@@ -297,27 +341,74 @@ int main() {
   
   /*inizio = clock();
   bdclock = inizio;*/
-  
- /* 
-  while(((clock() - inizio) / CLOCKS_PER_SEC) < sim_time){
-    printf("Tempo di esecuzione: %lu\n", (clock() - inizio) / CLOCKS_PER_SEC);
-    if(((clock() - bdclock) / CLOCKS_PER_SEC) > birth_death){   
-      reservesem(sem_id, 1);
+  inizio = time(NULL);
+
+  while(esecuzione < sim_time){
+    while(msgrcv(msgq_id, &msgp_r, sizeof(struct msgbuf) - sizeof(long), getpid(), IPC_NOWAIT) > 0){
+      pid1 = msgp_r.m.data; // pid del processo che invia il messaggio
+      pid2 = msgp_r.m.pid;  // pid del processo che è stato scelto per accoppiarsi
+      
+      elind1 = eliminaindividuo(pid1);
+      if(elind1 == 1){
+        nome1 = (char *) malloc(sizeof(char) * strlens(nome) + 1);
+        gen1 = gen;
+        
+        for(i = 0; i < strlens(nome); i++){
+          nome1[i] = nome[i];
+        }  
+        nome1[strlens(nome) + 1] = '\0';
+        popolazione_attuale--;
+        printf("GESTORE: eliminato individuo\n");
+      }
+      
+      elind2 = eliminaindividuo(pid2);
+      if(elind2 == 1){
+        nome2 = (char *) malloc(sizeof(char) * strlens(nome) + 1);
+        gen2 = gen;
+        
+        for(i = 0; i < strlens(nome); i++){
+          nome2[i] = nome[i];
+        }  
+        nome2[strlens(nome) + 1] = '\0';
+        popolazione_attuale--;
+        printf("GESTORE: eliminato individuo\n");
+      }      
+      
+      if(elind1 + elind2 == 2){
+        persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes);
+        popolazione_attuale++;
+        aumenta_popolazione(persone[i]);
+        printf("GESTORE: creato nuovo individuo\n");
+        
+        persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes);
+        popolazione_attuale++;
+        aumenta_popolazione(persone[i]);
+        printf("GESTORE: creato nuovo individuo\n");
+      }else if(elind1 + elind2 == 1){
+        printf("Errore nell'eliminazione di uno dei genitori: %lu - %lu\n", pid1, pid2);
+      }
+    }
+    
+    if((esecuzione / cont) > birth_death){
+      printf("Uccido l'individuo più vecchio\n");   
+      reserveSem(sem_id, 0);
       uccidi_individuo(persone);
       persone[init_people - 1] = init_individuo(NULL, NULL, 2, genes);
       crea_persona(persone[init_people - 1]);
       aumenta_popolazione(persone[init_people-1]);
-      releasesem(sem_id, 1);
+      releaseSem(sem_id, 0);
+      cont++;
     }
-    bdclock = clock();
+    fine = time(NULL); 
+    esecuzione = difftime(fine, inizio); 
   }
-  */ 
-  while(1){
+
+  /*while(1){
     if(msgrcv(msgq_id, &msgp_r, sizeof(struct msgbuf) - sizeof(long), getpid(), 0) > 0){
       valuta_info();
       i++;
     }  
-  }
+  }*/
   while ((wpid = wait(&status)) > 0);
   printf("%d processi A creati.\n", popolazione[0]);
   printf("%d processi B creati.\n", popolazione[1]);

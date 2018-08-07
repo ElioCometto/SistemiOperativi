@@ -12,6 +12,12 @@ individuo shm;
 unsigned long pidB;
 
 
+/* Permette di deallocare la memoria usata dalle malloc della struct _individuo */
+void pulisci_persona (){
+  //free(me->name);
+  //free(me);
+}
+
 individuo initialize_individuo(char* name, unsigned long gen){
   int i;
   individuo pers = (individuo) malloc(sizeof(individuo));
@@ -56,7 +62,7 @@ void scrivi_info(individuo meshm){
 }
 
 
-unsigned long MCD(unsigned long gen1, unsigned long gen2){
+/*unsigned long MCD(unsigned long gen1, unsigned long gen2){
 	unsigned long r; //resto
 	unsigned long a = gen1;
 	unsigned long b = gen2; 
@@ -71,7 +77,8 @@ unsigned long MCD(unsigned long gen1, unsigned long gen2){
 	}
 	 
 	return a;
-}
+}*/
+
 
 int valuta_info(){
   //char *msg = ((struct msgbuf)msgp)->mtext;
@@ -118,16 +125,14 @@ void libera_risorse(){
     printf("Errore nel staccarsi dalla memoria condivisa\n");
     exit(EXIT_FAILURE);
   }
-  pulisci_persona(me);
+  pulisci_persona();
   exit(1);
 }
 
 
-/*void (*handler(int sig)){
-	if (sig == SIGTERM){
-		libera_risorse();
-	}
-}*/
+void handler_sigterm(int sig){
+  libera_risorse();
+}
 
 int main(int argc, char* argv[]) {
   me = initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
