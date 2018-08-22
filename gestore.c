@@ -30,11 +30,13 @@ struct msgbuf msgp_r;
 individuo tmp_individuo;
 char* nome;
 unsigned long gen;
+individuo longest_name;
+individuo max_genoma;
 
 /**  
  *  Crea un individuo 
  */
-individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene){
+individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene, char t){
 	char nome[strlens(nome_padre) + strlens(nome_madre) + 2];
 	char nome_tmp;
 	//unsigned long genoma;
@@ -47,11 +49,16 @@ individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene){
     exit(EXIT_FAILURE);
   }
   
-  if(rand() % 2){
-    persona->tipo[0] = 'A';
-    persona->tipo[1] = '\0';
+  if(t == 'N'){  
+    if(rand() % 2){
+      persona->tipo[0] = 'A';
+      persona->tipo[1] = '\0';
+    }else{
+      persona->tipo[0] = 'B';
+      persona->tipo[1] = '\0';
+    }
   }else{
-    persona->tipo[0] = 'B';
+    persona->tipo[0] = t;
     persona->tipo[1] = '\0';
   }
   
@@ -67,7 +74,7 @@ individuo init_individuo(char* nome_padre, char* nome_madre, int x, int gene){
   nome[i + j + 1] = '\0';
 
   strncpy(persona->name, nome, strlens(nome_padre) + strlens(nome_madre) + 2);
-  persona->genoma = x + (rand() % (x + gene));
+  persona->genoma = x + (rand() % (x + gene));  
      
   return persona;
 }
@@ -78,43 +85,7 @@ void pulisci_persona (individuo p){
   //free(p);
 }
 
-individuo crea_individuoA(){
-  individuo persona = (individuo) malloc(sizeof(individuo));
-  persona->name = (char*) malloc(sizeof(char) * 2);
 
-  if(persona == NULL){
-    printf("Error: can't initialize the struct individuo");
-    exit(EXIT_FAILURE);
-  }
-  
-  persona->tipo[0] = 'A';
-  persona->tipo[1] = '\0';
-  
-  persona->name[0] = 'A';
-  persona->name[1] = '\0';
-  persona->genoma = 100;
-     
-  return persona;
-}
-
-individuo crea_individuoB(){
-  individuo persona = (individuo) malloc(sizeof(individuo));
-  persona->name = (char*) malloc(sizeof(char) * 2); 
-
-  if(persona == NULL){
-    printf("Error: can't initialize the struct individuo");
-    exit(EXIT_FAILURE);
-  }
-  
-  persona->tipo[0] = 'B';
-  persona->tipo[1] = '\0';
-  
-  persona->name[0] = 'B';
-  persona->name[1] = '\0';
-  persona->genoma = 200;
-     
-  return persona;
-}
 
 int eliminaindividuo(pid_t pid){
   int j, l, i = 0;
@@ -248,6 +219,28 @@ void aumenta_popolazione(individuo p){
   }
 }
 
+void salvaindividuo(individuo tmp){
+  if(strlens(tmp->name) > (strlens(longest_name->name))){
+    //longest_name = (individuo) malloc(sizeof(individuo));
+    longest_name->name = (char*) malloc(sizeof(char) * strlens(tmp->name));
+    strncpy(longest_name->name, tmp->name, strlens(tmp->name));
+    longest_name->tipo[0] = tmp->tipo[0];
+    longest_name->tipo[1] = tmp->tipo[1];
+    longest_name->genoma = tmp->genoma;
+    longest_name->pid = tmp->pid;
+  }
+  
+  if(tmp->genoma > max_genoma->genoma){
+    //max_genoma = (individuo) malloc(sizeof(individuo));
+    max_genoma->name = (char*) malloc(sizeof(char) * strlens(tmp->name));
+    strncpy(max_genoma->name, tmp->name, strlens(tmp->name));
+    max_genoma->tipo[0] = tmp->tipo[0];
+    max_genoma->tipo[1] = tmp->tipo[1];
+    max_genoma->genoma = tmp->genoma;
+    max_genoma->pid = tmp->pid;
+  }
+}
+
 int valuta_info(){
   pid_t pid = msgp_r.m.pid;
 
@@ -255,7 +248,16 @@ int valuta_info(){
   return 1;
 }
 
-
+void stampa_dati(){
+  printf("Processi di tipo A creati: %d\n", popolazione[0]);
+  printf("Processi di tipo B creati: %d\n", popolazione[1]);
+  
+  printf("Processo con il nome più lungo: \n");
+  debug_individuo(longest_name);
+  
+  printf("Processo con il genoma più grande: \n");
+  debug_individuo(max_genoma);
+}
 
 int main() {
   //char *line_buffer = (char *) malloc(sizeof(char) * MAX_LENGHT);
@@ -274,6 +276,9 @@ int main() {
   unsigned long gen1, gen2;
   popolazione_attuale = init_people;
   pid_t pid1, pid2;
+  
+  longest_name = (individuo) malloc(sizeof(individuo));
+  max_genoma = (individuo) malloc(sizeof(individuo));
   
   srand(time(NULL));
   
@@ -308,27 +313,33 @@ int main() {
     exit(EXIT_FAILURE);
   }
   
-  /*persone[0] = crea_individuoA();
-  persone[1] = crea_individuoB();*/
-  
   for(i = 0; i < init_people; i++){
-    persone[i] = init_individuo(NULL, NULL, 2, genes);
+    if((i > init_people/2) && (popolazione[0]/(popolazione[1] + 0.1) < 0.25 || popolazione[0]/(popolazione[1] + 0.1) > 4)){
+      if(popolazione[0]/(popolazione[1] + 0.1) < 0.25){
+        persone[i] = init_individuo(NULL, NULL, 2, genes, 'A');
+      }else{
+        persone[i] = init_individuo(NULL, NULL, 2, genes, 'B');
+      }
+    }else{
+      persone[i] = init_individuo(NULL, NULL, 2, genes, 'N');
+    }
+    
     aumenta_popolazione(persone[i]);
-  //for(i = 0; i < 2; i++){
     switch(child_pid = fork()){
-			case -1:
-			  perror("errore fork()");
-				exit(EXIT_FAILURE);
+		  case -1:
+		    perror("errore fork()");
+		    exit(EXIT_FAILURE);
 				break;
 				
 			case 0: // caso del figlio
-				crea_persona(persone[i]);
+			  crea_persona(persone[i]);
 				break;
 				
 			default: // caso del padre
 			  persone[i]->pid = child_pid;
+			  salvaindividuo(persone[i]);
 			  //while ((wpid = wait(&status)) > 0);
-				break;
+			  break;
 		}
   }
   
@@ -375,12 +386,26 @@ int main() {
       }      
       
       if(elind1 + elind2 == 2){
-        persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes);
+        if(popolazione[0]/(popolazione[1] + 0.1) < 0.25){
+          persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes, 'A');
+        }else if(popolazione[0]/(popolazione[1] + 0.1) > 4){
+          persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes, 'B');
+        }else{
+          persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes, 'N');
+        }
+        
         popolazione_attuale++;
         aumenta_popolazione(persone[i]);
         printf("GESTORE: creato nuovo individuo\n");
         
-        persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes);
+        if(popolazione[0]/(popolazione[1] + 0.1) < 0.25){
+          persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes, 'A');
+        }else if(popolazione[0]/(popolazione[1] + 0.1) > 4){
+          persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes, 'B');
+        }else{
+          persone[popolazione_attuale] = init_individuo(nome1, nome2, MCD(gen1, gen2), genes, 'N');
+        }
+        
         popolazione_attuale++;
         aumenta_popolazione(persone[i]);
         printf("GESTORE: creato nuovo individuo\n");
@@ -393,7 +418,15 @@ int main() {
       printf("Uccido l'individuo più vecchio\n");   
       reserveSem(sem_id, 0);
       uccidi_individuo(persone);
-      persone[init_people - 1] = init_individuo(NULL, NULL, 2, genes);
+      
+      if(popolazione[0]/(popolazione[1] + 0.1) < 0.25){
+        persone[init_people - 1] = init_individuo(NULL, NULL, 2, genes, 'A');
+      }else if(popolazione[0]/(popolazione[1] + 0.1) > 4){
+        persone[init_people - 1] = init_individuo(NULL, NULL, 2, genes, 'B');
+      }else{
+        persone[init_people - 1] = init_individuo(NULL, NULL, 2, genes, 'N');
+      }
+      
       crea_persona(persone[init_people - 1]);
       aumenta_popolazione(persone[init_people-1]);
       releaseSem(sem_id, 0);
@@ -403,21 +436,9 @@ int main() {
     esecuzione = difftime(fine, inizio); 
   }
 
-  /*while(1){
-    if(msgrcv(msgq_id, &msgp_r, sizeof(struct msgbuf) - sizeof(long), getpid(), 0) > 0){
-      valuta_info();
-      i++;
-    }  
-  }*/
   while ((wpid = wait(&status)) > 0);
-  printf("%d processi A creati.\n", popolazione[0]);
-  printf("%d processi B creati.\n", popolazione[1]);
   
-  //print_shm(puntatore_shm, init_people);
+  stampa_dati();
 
-  /*for(i = 0; i <init_people; i++){
-    //pulisci_persona(persone[i]);
-  } */
-  //print_shm(puntatore_shm, init_people);
 }
 

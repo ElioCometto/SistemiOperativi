@@ -88,16 +88,13 @@ int valuta_info(){
 	unsigned long mcd = MCD(genB, me->genoma);
 
   printf("Sono stato contattato dal processo B con pid: %lu\n", pidB);
+	printf("MCD: %lu, me->genoma: %lu\n", mcd, me->genoma);
 	
-	if(mcd == me->genoma){
+	if(mcd >= me->genoma){
 		return 1;
 	}
 	else {
-		if(mcd >= target){
-			return 1;
-		} 
-		else 
-		  return -1;
+		return -1;
 	}
 }
 
@@ -144,7 +141,7 @@ int main(int argc, char* argv[]) {
   sem_id = semget(KEY_SEM, 0, 0666);
   
   while(getVal(sem_id) != 1){
-    sleep(0.5);
+    sleep(0.1);
   }
   
   reserveSem(sem_id, 0);
@@ -179,7 +176,7 @@ int main(int argc, char* argv[]) {
       //Valuta informazioni di B 
       va_bene = valuta_info();
       
-      if(va_bene){
+      if(va_bene == 1){
       	//Invia al processo B il messaggio e gli comunica che è stato accetatto
       	invia_messaggio(1, pidB, me->pid);
 
@@ -197,6 +194,6 @@ int main(int argc, char* argv[]) {
     }/*else{
       printf("Impossibile ricevere messaggio: %s\n", strerror(errno));
     }*/
-    sleep(0.5);
+    sleep(0.1);
   }
 }

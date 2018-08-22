@@ -11,6 +11,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define KEY_MEMORIA 5555
 #define KEY_SEM 8888
