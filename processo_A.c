@@ -13,33 +13,31 @@ unsigned long pidB;
 
 
 /* Permette di deallocare la memoria usata dalle malloc della struct _individuo */
-void pulisci_persona (){
-  //free(me->name);
-  //free(me);
+void pulisci_persona(){
+  free(me->name);
+  free(me);
 }
 
-individuo initialize_individuo(char* name, unsigned long gen){
+void initialize_individuo(char* name, unsigned long gen){
   int i;
-  individuo pers = (individuo) malloc(sizeof(individuo));
-  pers->name = (char *) malloc(sizeof(char) * (strlens(name) + 1));
+  me = (individuo) malloc(sizeof(individuo));
+  me->name = (char *) malloc(sizeof(char) * (strlens(name) + 1));
   
-  if(pers->name == NULL){
+  if(me->name == NULL){
     printf("Error: can't initialize the struct in individuo_A");
     exit(EXIT_FAILURE);
   }
   
-  pers->tipo[0] = 'A';
-  pers->tipo[1] = '\0';
+  me->tipo[0] = 'A';
+  me->tipo[1] = '\0';
   for(i = 0; i < strlens(name); i++){
-    pers->name[i] = name[i];
+    me->name[i] = name[i];
   }
   //pers->name[i + 1] = '\0';
-  pers->name[strlens(name)] = '\0';
-  pers->genoma = gen;
+  me->name[strlens(name)] = '\0';
+  me->genoma = gen;
   
-  pers->pid = getpid();
-  
-  return pers;
+  me->pid = getpid();
 }
 
 void scrivi_info(individuo meshm){
@@ -62,24 +60,6 @@ void scrivi_info(individuo meshm){
 }
 
 
-/*unsigned long MCD(unsigned long gen1, unsigned long gen2){
-	unsigned long r; //resto
-	unsigned long a = gen1;
-	unsigned long b = gen2; 
-  
-  if(a % b == 0)
-    return b;
-  
-	while(b != 0){
-		r = a % b;
-	 	a = b;
-	 	b = r;
-	}
-	 
-	return a;
-}*/
-
-
 int valuta_info(){
   //char *msg = ((struct msgbuf)msgp)->mtext;
 	//unsigned long genB = strtoul(msg, NULL, 10); //ci siamo salvati il genoma del processo B
@@ -88,7 +68,7 @@ int valuta_info(){
 	unsigned long mcd = MCD(genB, me->genoma);
 
   printf("Sono stato contattato dal processo B con pid: %lu\n", pidB);
-	printf("MCD: %lu, me->genoma: %lu\n", mcd, me->genoma);
+	printf("MCD: %lu, genoma A: %lu, genoma B: %lu\n", mcd, me->genoma, genB);
 	
 	if(mcd >= me->genoma){
 		return 1;
@@ -132,11 +112,14 @@ void handler_sigterm(int sig){
 }
 
 int main(int argc, char* argv[]) {
-  me = initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
+  initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
   int shm_id;
   target = me->genoma;
   int va_bene;
   
+  /*Ridefinisco il segnale SIGQUIT*/
+	if(signal(SIGTERM, handler_sigterm)== SIG_ERR) printf("Errore: %s\n", strerror(errno));
+	
   printf("Sono il processo_A\n");
   sem_id = semget(KEY_SEM, 0, 0666);
   

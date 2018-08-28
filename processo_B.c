@@ -33,44 +33,28 @@ void libera_risorse(){
   exit(1);
 }
 
-individuo initialize_individuo(char* name, unsigned long gen){
+void initialize_individuo(char* name, unsigned long gen){
   int i;
-  individuo pers = (individuo) malloc(sizeof(individuo));
-  pers->name = (char *) malloc(sizeof(char) * (strlens(name) + 1));
+  me = (individuo) malloc(sizeof(individuo));
+  me->name = (char *) malloc(sizeof(char) * (strlens(name) + 1));
   
-  if(pers->name == NULL){
+  if(me->name == NULL){
     //printf("Error: can't initialize the struct in individuo_B\n");
     write(output, "Error: can't initialize the struct in individuo_B\n", sizeof("Error: can't initialize the struct in individuo_B\n"));
     exit(EXIT_FAILURE);
   }
   
-  pers->tipo[0] = 'B';
-  pers->tipo[1] = '\0';
+  me->tipo[0] = 'B';
+  me->tipo[1] = '\0';
   for(i = 0; i < strlens(name); i++){
-    pers->name[i] = name[i];
+    me->name[i] = name[i];
   }
   //pers->name[i + 1] = '\0';
-  pers->name[strlens(name)] = '\0';
-  pers->genoma = gen;
+  me->name[strlens(name)] = '\0';
+  me->genoma = gen;
   
-  pers->pid = getpid();
-  
-  return pers;
+  me->pid = getpid();
 }
-
-/*unsigned long MCD(unsigned long genB, unsigned long genA){
-	unsigned long r; //resto
-	unsigned long a = genB;
-	unsigned long b = genA; 
-
-	 while(b != 0){
-	 	r = a % b;
-	 	a = b;
-	 	b = r;
-	 }
-	 
-	 return a;
-}*/
 
 int comparator(unsigned long gen1, unsigned long gen2){
   if(MCD(me->genoma, gen1) > MCD(me->genoma, gen2))
@@ -96,7 +80,7 @@ void invia_messaggio(unsigned long stato, pid_t pid_destinatario, pid_t pid_ogge
   msgsnd(msgq_id, &sbuf, sizeof(struct msgbuf) - sizeof(long), MSG_NOERROR);
 }
 
-void ordina_array(individuo *arrA, int numA){
+void ordina_array(individuo *arr, int numA){
   int i, j;
   individuo tmp;
   int posmax;
@@ -104,13 +88,13 @@ void ordina_array(individuo *arrA, int numA){
   for(i = 0; i < numA; i++){
     posmax = i;
     for (j = i + 1; j < numA; j++){
-      if(comparator(arrA[j]->genoma, arrA[posmax]->genoma) > 0)
+      if(comparator(arr[j]->genoma, arr[posmax]->genoma) > 0)
         posmax = j;
     }
     if(posmax != i){
-      tmp = arrA[i];
-      arrA[i] = arrA[posmax];
-      arrA[posmax] = tmp;
+      tmp = arr[i];
+      arr[i] = arr[posmax];
+      arr[posmax] = tmp;
     }
   }
 }
@@ -146,7 +130,7 @@ void contatta_processo_A(individuo *arrA, int numA){
         invia_messaggio(getpid(), getppid(), arrA[i]->pid);
         //printf("Processo B invio al gestore.\n");
         write(output, "Processo B invio al gestore.\n", sizeof("Processo B invio al gestore.\n"));
-        libera_risorse();
+        //libera_risorse();
       }else if(risp == 2){
         //printf("Sono stato rifiutato dal processo A.\n");
         write(output, "Sono stato rifiutato dal processo A.\n", sizeof("Sono stato rifiutato dal processo A.\n"));
@@ -193,6 +177,7 @@ void scegli_A(individuo shm){
       numA++; 
     }
     fflush(stdout);
+    
   }
     
   releaseSem(sem_id, 0);
@@ -235,10 +220,13 @@ void handler_sigterm(int sig){
 }
 
 int main(int argc, char* argv[]) {
-  me = initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
+  initialize_individuo(argv[0], strtoul(argv[1], NULL, 10));
   int shm_id;
-  //output = open(STDOUT_FILENO, O_APPEND || O_ASYNC || O_CREAT, "w");
+  fcntl(output, O_APPEND || O_ASYNC);
   
+  /*Ridefinisco il segnale SIGQUIT*/
+	if(signal(SIGTERM, handler_sigterm)== SIG_ERR) printf("Errore: %s\n", strerror(errno));
+	
   //printf("Sono il processo_B\n");
   write(output, "Sono il processo_B\n", sizeof("Sono il processo_B\n"));
   leggi_file();

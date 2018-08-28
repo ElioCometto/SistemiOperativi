@@ -1,5 +1,5 @@
 program: gestore.o processo_A.o processo_B.o sharedmem.o semaphore.o
-	gcc -Wall -pedantic -o program gestore.o sharedmem.o semaphore.o
+	gcc -Wall -pedantic -o gestore gestore.o sharedmem.o semaphore.o
 	gcc -Wall -pedantic -o processo_A processo_A.o sharedmem.o semaphore.o
 	gcc -Wall -pedantic -o processo_B processo_B.o sharedmem.o semaphore.o
 	

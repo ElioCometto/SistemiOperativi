@@ -90,9 +90,11 @@ void pulisci_persona (individuo p){
 int eliminaindividuo(pid_t pid){
   int j, l, i = 0;
   int flag = 0;
+  individuo canc = NULL;
   
   while(i < init_people && flag == 0){
     if(persone[i]->pid == pid){
+      canc = persone[i];
       nome = (char*) malloc(sizeof(char) * strlens(persone[i]->name) + 1);
       for(l = 0; l < strlens(persone[i]->name); l++){
         nome[l] = persone[i]->name[l];
@@ -107,6 +109,10 @@ int eliminaindividuo(pid_t pid){
       persone[init_people - 1] = NULL;
       flag = 1;
     }
+  }
+  if(canc != NULL){
+    free(canc->name);
+    free(canc);
   }
   
   return flag; 
@@ -345,13 +351,8 @@ int main() {
   
   
   sleep(1.0);
-  if(releaseSem(sem_id, 0) != 0){
-    printf("Errore nell'inizializzazione del semaforo: %s\n", strerror(errno));
-    fflush(stderr);
-  }
+  releaseSem(sem_id, 0);
   
-  /*inizio = clock();
-  bdclock = inizio;*/
   inizio = time(NULL);
 
   while(esecuzione < sim_time){
@@ -436,7 +437,20 @@ int main() {
     esecuzione = difftime(fine, inizio); 
   }
 
-  while ((wpid = wait(&status)) > 0);
+  for(i = 0; i < init_people; i++){
+    uccidi_individuo(persone);
+  }
+  while((wpid = wait(&status)) > 0);
+  
+  if(msgctl(msgq_id, IPC_RMID, NULL) == -1){
+    printf("Errore nella rimozione della coda di messaggi\n");
+  }
+  if(semctl(sem_id, 0, IPC_RMID) == -1){
+    printf("Errore nella rimozione del semaforo\n");
+  }
+  if(removeshm(shm_id) == -1){
+    printf("Errore nella rimozione della memoria condivisa\n");
+  }
   
   stampa_dati();
 

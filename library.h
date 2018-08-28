@@ -20,8 +20,6 @@
 #define SHM_SPACE sizeof(unsigned long) * 3
 #define strlens(s) (s==NULL?0:strlen(s))
 
-//key_t shm_key = 5555;
-
 
 unsigned long MCD(unsigned long gen1, unsigned long gen2){
 	unsigned long r; //resto
@@ -63,12 +61,6 @@ struct msgbuf{
 };
 //struct msqid_ds buf;
 
-
-/* Permette di deallocare la memoria usata dalle malloc della struct _individuo 
-void pulisci_persona (individuo p){
-  free(p->name);
-  free(p);
-}*/
 
 void updatemsgqueue(int msgq_id){
   struct msqid_ds buf;
@@ -156,10 +148,5 @@ char **strsplit(const char* str, const char* delim, size_t* numtokens) {
     free(s);
     return tokens;
 }
-
-
-/*void (*sighandler(int signum)){
-  printf("sono sighandler\n");
-}*/
 
 #endif 
