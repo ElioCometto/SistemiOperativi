@@ -216,6 +216,7 @@ void leggi_file(){
 }
 
 void handler_sigterm(int sig){
+  printf("\n\n\nCATTURO SEGNALE SIGTERM\n\n\n");
   libera_risorse();
 }
 

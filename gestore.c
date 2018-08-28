@@ -205,6 +205,7 @@ void crea_persona(individuo p){
 void uccidi_individuo(individuo *persone){
   rimuovi_individuo(persone);
     
+  printf("\n\n\nINVIO SEGNALE SIGTERM!\n\n\n");
   kill(tmp_individuo->pid, SIGTERM);
   //signal(SIGQUIT, handler_sigterm);
     
